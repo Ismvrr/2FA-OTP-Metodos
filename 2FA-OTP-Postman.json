@@ -1,0 +1,158 @@
+{
+  "info": {
+    "name": "2FA OTP Service",
+    "description": "Endpoints para envio de codigos OTP por Email (Brevo) y WhatsApp (Chat2Desk HSM verifycode)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "2fa-otp-service"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://tudominio.com"
+    },
+    {
+      "key": "api_key",
+      "value": "cambia-esta-clave"
+    }
+  ],
+  "item": [
+    {
+      "name": "Enviar OTP por Email",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "API-Key", "value": "{{api_key}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"method\": \"email\",\n  \"email\": \"destino@ejemplo.com\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/otp/send", "host": ["{{base_url}}"], "path": ["otp", "send"] }
+      },
+      "response": [
+        {
+          "name": "Success",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"errorCode\": 0,\n  \"status\": \"SUCCESS\",\n  \"errorMessage\": \"OK\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Enviar OTP por WhatsApp",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "API-Key", "value": "{{api_key}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"method\": \"whatsapp\",\n  \"telefono\": \"525500000000\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/otp/send", "host": ["{{base_url}}"], "path": ["otp", "send"] }
+      },
+      "response": [
+        {
+          "name": "Success",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"errorCode\": 0,\n  \"status\": \"SUCCESS\",\n  \"errorMessage\": \"OK\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Enviar OTP por Email y WhatsApp (both)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "API-Key", "value": "{{api_key}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"method\": \"both\",\n  \"email\": \"destino@ejemplo.com\",\n  \"telefono\": \"525500000000\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/otp/send", "host": ["{{base_url}}"], "path": ["otp", "send"] }
+      },
+      "response": [
+        {
+          "name": "Success",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"errorCode\": 0,\n  \"status\": \"SUCCESS\",\n  \"errorMessage\": \"OK\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Verificar OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "API-Key", "value": "{{api_key}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"otp_code\": \"AB12CD\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/otp/verify", "host": ["{{base_url}}"], "path": ["otp", "verify"] }
+      },
+      "response": [
+        {
+          "name": "Success",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"errorCode\": 0,\n  \"status\": \"SUCCESS\",\n  \"errorMessage\": \"OK\"\n}"
+        },
+        {
+          "name": "Not Found",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"errorCode\": 401,\n  \"status\": \"ERROR\",\n  \"errorMessage\": \"OTP no encontrado\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Ver configuracion de envio",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "API-Key", "value": "{{api_key}}", "type": "text" }
+        ],
+        "url": { "raw": "{{base_url}}/otp/config", "host": ["{{base_url}}"], "path": ["otp", "config"] }
+      }
+    },
+    {
+      "name": "Actualizar configuracion de envio (PATCH)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "API-Key", "value": "{{api_key}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"MAIL_FROM\": \"info@tudominio.com\",\n  \"MAIL_USER\": \"usuario@smtp-brevo.com\",\n  \"MAIL_PASSWORD\": \"nueva-contraseña\",\n  \"MAIL_SERVER\": \"smtp-relay.brevo.com\",\n  \"MAIL_PORT\": 587,\n  \"CHAT2DESK_TOKEN\": \"tu-token-chat2desk\",\n  \"CHAT2DESK_CHANNEL_ID\": \"tu-channel-id\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/otp/config", "host": ["{{base_url}}"], "path": ["otp", "config"] }
+      }
+    },
+    {
+      "name": "Actualizar configuracion de envio (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "API-Key", "value": "{{api_key}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"CHAT2DESK_TOKEN\": \"tu-token-chat2desk\",\n  \"CHAT2DESK_CHANNEL_ID\": \"tu-channel-id\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/otp/config", "host": ["{{base_url}}"], "path": ["otp", "config"] }
+      }
+    }
+  ]
+}
