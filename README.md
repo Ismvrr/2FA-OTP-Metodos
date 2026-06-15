@@ -125,17 +125,6 @@ Verifica un código OTP. Cada código puede verificarse **una sola vez** y expir
 
 Muestra la configuración actual. Las contraseñas y tokens se muestran como `********`.
 
-### `PATCH /otp/config` | `PUT /otp/config`
-
-Actualiza campos de configuración. Solo se actualizan los campos enviados.
-
-```json
-{
-  "MAIL_FROM": "nuevo@ejemplo.com",
-  "MAIL_PASSWORD": "nueva-contraseña"
-}
-```
-
 ## Documentación interactiva
 
 Con el servidor corriendo, abrir:
@@ -145,7 +134,15 @@ Con el servidor corriendo, abrir:
 
 ## Postman
 
-Incluye el archivo `2FA-OTP-Postman.json` en la raíz. Importar en Postman y configurar las variables:
+Incluye el archivo `2FA-OTP-Postman.json` en la raíz. Importar en Postman y configurar las variables. La colección está organizada en 3 carpetas:
+
+| Carpeta | Métodos |
+|---------|---------|
+| Envio de OTP | `POST /otp/send` (email, whatsapp, both) |
+| Verificacion de OTP | `POST /otp/verify` |
+| Configuracion | `GET /otp/config` |
+
+Variables a configurar:
 
 | Variable | Valor |
 |----------|-------|
