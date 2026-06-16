@@ -40,16 +40,6 @@ class SenderConfigResponse(BaseModel):
     data: dict
 
 
-class SenderConfigUpdate(BaseModel):
-    MAIL_FROM: str | None = Field(default=None)
-    MAIL_USER: str | None = Field(default=None)
-    MAIL_PASSWORD: str | None = Field(default=None)
-    MAIL_SERVER: str | None = Field(default=None)
-    MAIL_PORT: int | None = Field(default=None)
-    CHAT2DESK_TOKEN: str | None = Field(default=None)
-    CHAT2DESK_CHANNEL_ID: str | None = Field(default=None)
-
-
 def verify_api_key(api_key: str = Header(..., alias="API-Key")):
     expected = _get_api_key()
     if not expected:
@@ -129,24 +119,3 @@ def get_sender_config(_=Depends(verify_api_key)):
         "CHAT2DESK_CHANNEL_ID": env.get("CHAT2DESK_CHANNEL_ID", ""),
     }
     return SenderConfigResponse(errorCode=0, status="SUCCESS", errorMessage="OK", data=data)
-
-
-@router.patch("/config", response_model=SenderConfigResponse)
-def patch_sender_config(updates: SenderConfigUpdate, _=Depends(verify_api_key)):
-    filtered = {k: str(v) for k, v in updates.model_dump(exclude_none=True).items()}
-    if not filtered:
-        return SenderConfigResponse(errorCode=400, status="ERROR", errorMessage="No hay campos para actualizar", data={})
-    ok = envManager.update_env(filtered)
-    if not ok:
-        return SenderConfigResponse(errorCode=500, status="ERROR", errorMessage="Error al escribir .env", data={})
-
-    os.environ.update(filtered)
-    mailService.reload_config()
-    whatsappService.reload_config()
-
-    return get_sender_config(_)
-
-
-@router.put("/config", response_model=SenderConfigResponse)
-def put_sender_config(updates: SenderConfigUpdate, _=Depends(verify_api_key)):
-    return patch_sender_config(updates, _)
