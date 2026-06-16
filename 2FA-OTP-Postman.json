@@ -165,7 +165,30 @@
               "name": "Configuracion",
               "status": "OK",
               "code": 200,
-              "body": "{\n  \"errorCode\": 0,\n  \"status\": \"SUCCESS\",\n  \"errorMessage\": \"OK\",\n  \"data\": {\n    \"MAIL_FROM\": \"info@tudominio.com\",\n    \"MAIL_USER\": \"usuario@smtp-brevo.com\",\n    \"MAIL_PASSWORD\": \"********\",\n    \"MAIL_SERVER\": \"smtp-relay.brevo.com\",\n    \"MAIL_PORT\": \"587\",\n    \"CHAT2DESK_TOKEN\": \"********\",\n    \"CHAT2DESK_CHANNEL_ID\": \"12345\"\n  }\n}"
+              "body": "{\n  \"errorCode\": 0,\n  \"status\": \"SUCCESS\",\n  \"errorMessage\": \"OK\",\n  \"data\": {\n    \"MAIL_FROM\": \"info@tudominio.com\",\n    \"MAIL_USER\": \"usuario@smtp-brevo.com\",\n    \"MAIL_PASSWORD\": \"********\",\n    \"MAIL_SERVER\": \"smtp-relay.brevo.com\",\n    \"MAIL_PORT\": \"587\",\n    \"CHAT2DESK_TOKEN\": \"********\",\n    \"CHAT2DESK_CHANNEL_ID\": \"12345\",\n    \"OTP_LENGTH\": 6,\n    \"OTP_TYPE\": \"alphanumeric\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar parametros OTP",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "API-Key", "value": "{{api_key}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"length\": 8,\n  \"type\": \"numeric\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/otp/params", "host": ["{{base_url}}"], "path": ["otp", "params"] }
+          },
+          "response": [
+            {
+              "name": "Actualizado",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"errorCode\": 0,\n  \"status\": \"SUCCESS\",\n  \"errorMessage\": \"OK\",\n  \"data\": {\n    \"MAIL_FROM\": \"info@tudominio.com\",\n    \"MAIL_USER\": \"usuario@smtp-brevo.com\",\n    \"MAIL_PASSWORD\": \"********\",\n    \"MAIL_SERVER\": \"smtp-relay.brevo.com\",\n    \"MAIL_PORT\": \"587\",\n    \"CHAT2DESK_TOKEN\": \"********\",\n    \"CHAT2DESK_CHANNEL_ID\": \"12345\",\n    \"OTP_LENGTH\": 8,\n    \"OTP_TYPE\": \"numeric\"\n  }\n}"
             }
           ]
         }

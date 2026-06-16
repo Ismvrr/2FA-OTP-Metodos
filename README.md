@@ -1,6 +1,6 @@
 # OTP Service
 
-Servicio independiente para envío y verificación de códigos OTP por Email (SMTP) y WhatsApp (Chat2Desk API).
+Servicio independiente para envío y verificación de códigos OTP por Email (SMTP Brevo) y WhatsApp (Chat2Desk API con HSM template).
 
 ## Stack
 
@@ -40,6 +40,10 @@ ENCRYPTION_KEY=una-clave-segura-de-32-caracteres
 CHAT2DESK_API_URL=https://api.chat2desk.com.mx
 CHAT2DESK_TOKEN=tu-token-chat2desk
 CHAT2DESK_CHANNEL_ID=tu-channel-id
+
+# Parámetros del OTP (configurables via PATCH /otp/params)
+OTP_LENGTH=6
+OTP_TYPE=alphanumeric
 ```
 
 ## Instalación
@@ -56,6 +60,30 @@ pip install -r requirements.txt
 uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
+## Despliegue con systemd
+
+```ini
+[Unit]
+Description=2FA OTP Service
+After=network.target
+
+[Service]
+Type=simple
+User=deployer
+WorkingDirectory=/ruta/al/proyecto/otp-service
+ExecStart=/ruta/al/proyecto/otp-service/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now 2fa-otp.service
+sudo systemctl restart 2fa-otp.service
+```
+
 ## Autenticación
 
 Todas las rutas requieren el header:
@@ -66,9 +94,11 @@ API-Key: tu-api-key
 
 ## Endpoints
 
+---
+
 ### `POST /otp/send`
 
-Envía un código OTP de 6 caracteres alfanuméricos al canal especificado.
+Envía un código OTP al canal especificado. La longitud y el tipo (numeric/alphanumeric) se leen del `.env` en cada request — no necesita reinicio tras un `PATCH /otp/params`.
 
 **Body:**
 
@@ -96,6 +126,14 @@ Envía un código OTP de 6 caracteres alfanuméricos al canal especificado.
 {"errorCode": 500, "status": "ERROR", "errorMessage": "Error al enviar WhatsApp"}
 ```
 
+**Ejemplo con curl:**
+```bash
+curl -X POST https://2fa.chat2desk.support/otp/send \
+  -H "API-Key: tu-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"method": "email", "email": "usuario@ejemplo.com"}'
+```
+
 ---
 
 ### `POST /otp/verify`
@@ -107,23 +145,126 @@ Verifica un código OTP. Cada código puede verificarse **una sola vez** y expir
 {"otp_code": "AB12CD"}
 ```
 
+La longitud esperada se valida contra `OTP_LENGTH` del `.env`. Si no coincide, responde con `errorCode: 400`.
+
 **Respuesta exitosa:**
 ```json
 {"errorCode": 0, "status": "SUCCESS", "errorMessage": "OK"}
 ```
 
 **Respuestas de error:**
-```json
-{"errorCode": 401, "status": "ERROR", "errorMessage": "OTP no encontrado"}
-{"errorCode": 401, "status": "ERROR", "errorMessage": "OTP expirado"}
-{"errorCode": 401, "status": "ERROR", "errorMessage": "Demasiados intentos"}
+
+| errorCode | errorMessage | Descripción |
+|-----------|-------------|-------------|
+| 400 | El codigo debe tener N caracteres | Longitud incorrecta según config |
+| 401 | OTP no encontrado | Código nunca enviado o ya consumido |
+| 401 | OTP expirado | Pasaron más de 5 minutos |
+| 401 | Demasiados intentos | 3 intentos fallidos agotados |
+
+**Ejemplo con curl:**
+```bash
+curl -X POST https://2fa.chat2desk.support/otp/verify \
+  -H "API-Key: tu-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"otp_code": "AB12CD"}'
 ```
 
 ---
 
 ### `GET /otp/config`
 
-Muestra la configuración actual. Las contraseñas y tokens se muestran como `********`.
+Muestra la configuración actual del servidor. Las contraseñas y tokens se muestran como `********`.
+
+**Ejemplo con curl:**
+```bash
+curl https://2fa.chat2desk.support/otp/config \
+  -H "API-Key: tu-api-key"
+```
+
+**Respuesta:**
+```json
+{
+  "errorCode": 0,
+  "status": "SUCCESS",
+  "errorMessage": "OK",
+  "data": {
+    "MAIL_FROM": "info@chat2desk.mx",
+    "MAIL_USER": "8a404c001@smtp-brevo.com",
+    "MAIL_PASSWORD": "********",
+    "MAIL_SERVER": "smtp-relay.brevo.com",
+    "MAIL_PORT": "587",
+    "CHAT2DESK_TOKEN": "********",
+    "CHAT2DESK_CHANNEL_ID": "16673",
+    "OTP_LENGTH": 6,
+    "OTP_TYPE": "alphanumeric"
+  }
+}
+```
+
+---
+
+### `PATCH /otp/params`
+
+Actualiza los parámetros de generación del OTP. Los cambios se reflejan en el siguiente `POST /otp/send` sin reiniciar el servidor.
+
+**Body:**
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `length` | int | no | Longitud del OTP (4-12) |
+| `type` | string | no | `numeric` o `alphanumeric` |
+
+Se pueden enviar uno o ambos campos.
+
+**Ejemplo:**
+```json
+{"length": 8, "type": "numeric"}
+```
+
+**Respuesta:**
+```json
+{
+  "errorCode": 0,
+  "status": "SUCCESS",
+  "errorMessage": "OK",
+  "data": {
+    "OTP_LENGTH": 8,
+    "OTP_TYPE": "numeric"
+  }
+}
+```
+
+**Ejemplo con curl:**
+```bash
+curl -X PATCH https://2fa.chat2desk.support/otp/params \
+  -H "API-Key: tu-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"length": 8, "type": "numeric"}'
+```
+
+---
+
+## Flujo completo (ejemplo)
+
+```bash
+# 1. Configurar OTP de 8 dígitos numéricos
+curl -X PATCH https://2fa.chat2desk.support/otp/params \
+  -H "API-Key: tu-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"length": 8, "type": "numeric"}'
+
+# 2. Enviar OTP por email
+curl -X POST https://2fa.chat2desk.support/otp/send \
+  -H "API-Key: tu-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"method": "email", "email": "usuario@ejemplo.com"}'
+
+# 3. Verificar el código recibido
+curl -X POST https://2fa.chat2desk.support/otp/verify \
+  -H "API-Key: tu-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"otp_code": "12345678"}'
+```
 
 ## Documentación interactiva
 
@@ -140,7 +281,7 @@ Incluye el archivo `2FA-OTP-Postman.json` en la raíz. Importar en Postman y con
 |---------|---------|
 | Envio de OTP | `POST /otp/send` (email, whatsapp, both) |
 | Verificacion de OTP | `POST /otp/verify` |
-| Configuracion | `GET /otp/config` |
+| Configuracion | `GET /otp/config`, `PATCH /otp/params` |
 
 Variables a configurar:
 
@@ -154,3 +295,4 @@ Variables a configurar:
 - Los OTP se almacenan **en memoria** (volátil). Un reinicio del servidor pierde los códigos activos.
 - Las credenciales sensibles (`MAIL_PASSWORD`, `CHAT2DESK_TOKEN`) se cifran con AES (Fernet) en el archivo `.env`.
 - La clave de cifrado está en `ENCRYPTION_KEY` del `.env`.
+- La longitud y tipo del OTP se leen del `.env` en cada request, por lo que un `PATCH /otp/params` se refleja sin reiniciar el servidor.

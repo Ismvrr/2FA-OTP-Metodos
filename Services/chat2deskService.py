@@ -130,7 +130,7 @@ def verify_otp(otp_code: str) -> tuple[bool, str]:
 
         if datetime.utcnow() > record["expires_at"]:
             otp_store.pop(otp_id, None)
-            continue
+            return False, "OTP expirado"
 
         if record["attempts"] >= 3:
             otp_store.pop(otp_id, None)
