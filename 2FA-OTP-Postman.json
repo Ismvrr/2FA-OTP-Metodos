@@ -58,7 +58,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"method\": \"whatsapp\",\n  \"telefono\": \"525500000000\"\n}"
+              "raw": "{\n  \"method\": \"whatsapp\",\n  \"telefono\": \"521550000000\"\n}"
             },
             "url": { "raw": "{{base_url}}/otp/send", "host": ["{{base_url}}"], "path": ["otp", "send"] }
           },
@@ -87,7 +87,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"method\": \"both\",\n  \"email\": \"destino@ejemplo.com\",\n  \"telefono\": \"525500000000\"\n}"
+              "raw": "{\n  \"method\": \"both\",\n  \"email\": \"destino@ejemplo.com\",\n  \"telefono\": \"521550000000\"\n}"
             },
             "url": { "raw": "{{base_url}}/otp/send", "host": ["{{base_url}}"], "path": ["otp", "send"] }
           },

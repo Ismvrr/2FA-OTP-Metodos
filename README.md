@@ -106,14 +106,14 @@ Envía un código OTP al canal especificado. La longitud y el tipo (numeric/alph
 |-------|------|-----------|-------------|
 | `method` | string | sí | `email`, `whatsapp`, o `both` |
 | `email` | string | según method | Correo destino |
-| `telefono` | string | según method | Teléfono destino (WhatsApp, formato `5255...`) |
+| `telefono` | string | según method | Teléfono destino (WhatsApp, formato `52155...`) |
 
 **Ejemplos:**
 
 ```json
 {"method": "email", "email": "usuario@ejemplo.com"}
-{"method": "whatsapp", "telefono": "525500000000"}
-{"method": "both", "email": "usuario@ejemplo.com", "telefono": "525500000000"}
+{"method": "whatsapp", "telefono": "521550000000"}
+{"method": "both", "email": "usuario@ejemplo.com", "telefono": "521550000000"}
 ```
 
 **Respuesta exitosa:**
