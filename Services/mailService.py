@@ -56,8 +56,8 @@ def send_otp_email_sync(to_email: str, otp_code: str, username: str) -> bool:
         print(f"[mailService] OTP enviado correctamente a {to_email}")
         return True
 
-    except smtplib.SMTPAuthenticationError:
-        print(f"[mailService] Error de autenticacion SMTP")
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"[mailService] Error de autenticacion SMTP: {e.smtp_error!r}")
         return False
     except smtplib.SMTPException as e:
         print(f"[mailService] Error SMTP: {e}")
