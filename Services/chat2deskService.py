@@ -2,7 +2,11 @@ import os
 import httpx
 import hashlib
 import uuid
+import json as _json
+import logging
 from datetime import datetime, timedelta
+
+logger = logging.getLogger("2fa")
 
 API_URL = ""
 TOKEN = ""
@@ -45,23 +49,22 @@ async def _get_or_create_client(telefono: str) -> int | None:
             err = resp.json()
             existing_id = err.get("errors", {}).get("client", [None, None])[1]
             if existing_id:
-                import json as _json
                 cid = _json.loads(existing_id).get("id")
                 if cid:
-                    print(f"[chat2desk] Cliente existente (extraido de error): id={cid}")
+                    logger.info(f"[chat2desk] Cliente existente (extraido de error): id={cid}")
                     return cid
         except Exception:
             pass
-        print(f"[chat2desk] Error POST clients: {resp.status_code} {resp.text}")
+        logger.error(f"[chat2desk] Error POST clients: {resp.status_code} {resp.text}")
         return None
 
     data = resp.json()
     if data.get("data") and data["data"].get("id"):
         client_id = data["data"]["id"]
-        print(f"[chat2desk] Cliente creado: id={client_id}")
+        logger.info(f"[chat2desk] Cliente creado: id={client_id}")
         return client_id
 
-    print(f"[chat2desk] Respuesta inesperada al crear cliente: {data}")
+    logger.warning(f"[chat2desk] Respuesta inesperada al crear cliente: {data}")
     return None
 
 
@@ -71,14 +74,14 @@ async def _find_client(telefono: str) -> int | None:
         resp = await client.get(url, headers=_headers())
 
     if resp.status_code != 200:
-        print(f"[chat2desk] Error GET clients: {resp.status_code} {resp.text}")
+        logger.error(f"[chat2desk] Error GET clients: {resp.status_code} {resp.text}")
         return None
 
     data = resp.json()
     if data.get("meta", {}).get("total", 0) > 0 and data.get("data"):
         client = data["data"][0]
         if client.get("channel_id") == int(CHANNEL_ID):
-            print(f"[chat2desk] Cliente existente con channel_id={CHANNEL_ID}: id={client['id']}")
+            logger.info(f"[chat2desk] Cliente existente con channel_id={CHANNEL_ID}: id={client['id']}")
             return client["id"]
     return None
 
@@ -102,10 +105,10 @@ async def send_otp_whatsapp(to_telefono: str, otp_code: str) -> tuple[bool, str 
         resp = await client.post(url, headers=_headers(), json=payload)
 
     if resp.status_code in (200, 201):
-        print(f"[chat2desk] OTP enviado a {to_telefono} (client_id={client_id})")
+        logger.info(f"[chat2desk] OTP enviado a {to_telefono} (client_id={client_id})")
         return True, str(client_id)
     else:
-        print(f"[chat2desk] Error al enviar mensaje: {resp.status_code} {resp.text}")
+        logger.error(f"[chat2desk] Error al enviar mensaje: {resp.status_code} {resp.text}")
         return False, None
 
 

@@ -1,8 +1,11 @@
 import os
 import smtplib
 import asyncio
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+logger = logging.getLogger("2fa")
 
 MAIL_FROM: str | None = None
 MAIL_USER: str | None = None
@@ -25,7 +28,7 @@ reload_config()
 
 def send_otp_email_sync(to_email: str, otp_code: str, username: str) -> bool:
     if not MAIL_FROM or not MAIL_PASSWORD:
-        print("[mailService] MAIL_FROM o MAIL_PASSWORD no configurados")
+        logger.error("[mailService] MAIL_FROM o MAIL_PASSWORD no configurados")
         return False
 
     try:
@@ -53,17 +56,17 @@ def send_otp_email_sync(to_email: str, otp_code: str, username: str) -> bool:
             server.login(MAIL_USER, MAIL_PASSWORD)
             server.sendmail(MAIL_FROM, [to_email], msg.as_string())
 
-        print(f"[mailService] OTP enviado correctamente a {to_email}")
+        logger.info(f"[mailService] OTP enviado correctamente a {to_email}")
         return True
 
     except smtplib.SMTPAuthenticationError as e:
-        print(f"[mailService] Error de autenticacion SMTP: {e.smtp_error!r}")
+        logger.error(f"[mailService] Error de autenticacion SMTP: {e.smtp_error!r}")
         return False
     except smtplib.SMTPException as e:
-        print(f"[mailService] Error SMTP: {e}")
+        logger.error(f"[mailService] Error SMTP: {e}")
         return False
     except Exception as e:
-        print(f"[mailService] Error inesperado: {e}")
+        logger.exception(f"[mailService] Error inesperado: {e}")
         return False
 
 

@@ -1,8 +1,11 @@
 import os
+import logging
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from Utils import securityUtil, envManager
 from Services import mailService, whatsappService, chat2deskService
+
+logger = logging.getLogger("2fa")
 
 router = APIRouter(prefix="/otp", tags=["OTP"])
 
@@ -43,8 +46,10 @@ class SenderConfigResponse(BaseModel):
 def verify_api_key(api_key: str = Header(..., alias="API-Key")):
     expected = _get_api_key()
     if not expected:
+        logger.error("[auth] OTP_API_KEY no configurada en el servidor")
         raise HTTPException(status_code=500, detail="OTP_API_KEY no configurada en el servidor")
     if api_key != expected:
+        logger.warning("[auth] API-Key invalida")
         raise HTTPException(status_code=403, detail="API-Key invalida")
     return True
 
@@ -54,6 +59,8 @@ async def send_otp(request: OTPSendRequest, _=Depends(verify_api_key)):
     length = int(envManager.read_env("OTP_LENGTH") or "6")
     type_ = envManager.read_env("OTP_TYPE") or "alphanumeric"
     otp_code = securityUtil.generate_otp(length, type_)
+
+    logger.info(f"[send] Generando OTP: length={length}, type={type_}, method={request.method}, email={request.email}, telefono={request.telefono}")
 
     email_sent = False
     whatsapp_sent = False
@@ -83,9 +90,11 @@ async def send_otp(request: OTPSendRequest, _=Depends(verify_api_key)):
     chat2deskService.store_otp(telefono_to, email_to, otp_code)
 
     if request.method == "email" and not email_sent:
+        logger.error(f"[send] Error al enviar email a {email_to}")
         return OTPSendResponse(errorCode=500, status="ERROR", errorMessage="Error al enviar email")
 
     if request.method == "whatsapp" and not whatsapp_sent:
+        logger.error(f"[send] Error al enviar WhatsApp a {telefono_to}")
         return OTPSendResponse(errorCode=500, status="ERROR", errorMessage="Error al enviar WhatsApp")
 
     if request.method == "both":
@@ -95,8 +104,10 @@ async def send_otp(request: OTPSendRequest, _=Depends(verify_api_key)):
         if not whatsapp_sent:
             errores.append("whatsapp")
         if errores:
+            logger.error(f"[send] Error al enviar: {', '.join(errores)}")
             return OTPSendResponse(errorCode=500, status="ERROR", errorMessage=f"Error al enviar: {', '.join(errores)}")
 
+    logger.info(f"[send] OTP enviado correctamente")
     return OTPSendResponse(errorCode=0, status="SUCCESS", errorMessage="OK")
 
 
@@ -104,10 +115,13 @@ async def send_otp(request: OTPSendRequest, _=Depends(verify_api_key)):
 def verify_otp(request: OTPVerifyRequest, _=Depends(verify_api_key)):
     expected_length = int(envManager.read_env("OTP_LENGTH") or "6")
     if len(request.otp_code) != expected_length:
+        logger.warning(f"[verify] Longitud incorrecta: esperado={expected_length}, recibido={len(request.otp_code)}")
         return OTPVerifyResponse(errorCode=400, status="ERROR", errorMessage=f"El codigo debe tener {expected_length} caracteres")
     ok, msg = chat2deskService.verify_otp(request.otp_code)
     if ok:
+        logger.info(f"[verify] Codigo correcto")
         return OTPVerifyResponse(errorCode=0, status="SUCCESS", errorMessage="OK")
+    logger.warning(f"[verify] Codigo incorrecto: {msg}")
     return OTPVerifyResponse(errorCode=401, status="ERROR", errorMessage=msg)
 
 
@@ -125,6 +139,7 @@ def get_sender_config(_=Depends(verify_api_key)):
         "OTP_LENGTH": int(env.get("OTP_LENGTH", "6")),
         "OTP_TYPE": env.get("OTP_TYPE", "alphanumeric"),
     }
+    logger.info(f"[config] Consulta de configuracion realizada")
     return SenderConfigResponse(errorCode=0, status="SUCCESS", errorMessage="OK", data=data)
 
 
@@ -153,9 +168,13 @@ def patch_otp_params(params: OtpParamsUpdate, _=Depends(verify_api_key)):
     if params.type is not None:
         updates["OTP_TYPE"] = params.type
     if not updates:
+        logger.warning("[params] No hay campos para actualizar")
         return OtpParamsResponse(errorCode=400, status="ERROR", errorMessage="No hay campos para actualizar", data=OtpParamsData(OTP_LENGTH=0, OTP_TYPE=""))
+    logger.info(f"[params] Actualizando parametros: {updates}")
     if not envManager.update_env(updates):
+        logger.error("[params] Error al escribir .env")
         return OtpParamsResponse(errorCode=500, status="ERROR", errorMessage="Error al escribir .env", data=OtpParamsData(OTP_LENGTH=0, OTP_TYPE=""))
     length = int(envManager.read_env("OTP_LENGTH") or "6")
     type_ = envManager.read_env("OTP_TYPE") or "alphanumeric"
+    logger.info(f"[params] Parametros actualizados: OTP_LENGTH={length}, OTP_TYPE={type_}")
     return OtpParamsResponse(errorCode=0, status="SUCCESS", errorMessage="OK", data=OtpParamsData(OTP_LENGTH=length, OTP_TYPE=type_))
